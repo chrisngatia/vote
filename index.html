@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Student Voting System</title>
+  <style>
+    body { font-family: Arial; background:#f4f4f4; text-align:center; }
+    .container { margin:20px auto; width:400px; }
+    .card { background:white; padding:15px; margin:10px 0; border-radius:10px; }
+    button { padding:8px 15px; cursor:pointer; margin-top:10px; }
+    input { padding:8px; width:90%; margin:5px 0; }
+  </style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<script>
+// ====== DATA ======
+let users = JSON.parse(localStorage.getItem("users")) || [];
+let votedUsers = JSON.parse(localStorage.getItem("votedUsers")) || [];
+let candidates = JSON.parse(localStorage.getItem("candidates")) || {
+  "President": ["KAHUSH","CHRIS"],
+  "Vice President": ["KAHUTHU","NGATIA"]
+};
+let votes = JSON.parse(localStorage.getItem("votes")) || {};
+
+// ====== ROUTER ======
+function render(page) {
+  if(page === "login") return loginPage();
+  if(page === "vote") return votePage();
+  if(page === "done") return donePage();
+  if(page === "admin") return adminLogin();
+  if(page === "dashboard") return dashboard();
+}
+
+// ====== LOGIN PAGE ======
+function loginPage() {
+  document.getElementById("app").innerHTML = `
+    <div class="container">
+      <h2>Student Login</h2>
+      <input id="name" placeholder="Enter your name" />
+      <button onclick="login()">Login</button>
+      <br/><br/>
+      <button onclick="render('admin')">Admin Panel</button>
+    </div>
+  `;
+}
+
+function login() {
+  const name = document.getElementById("name").value;
+  if(!name) return alert("Enter name");
+  if(votedUsers.includes(name)) return alert("You already voted");
+  localStorage.setItem("currentUser", name);
+  render("vote");
+}
+
+// ====== VOTING PAGE ======
+function votePage() {
+  let html = `<div class='container'><h2>Vote</h2>`;
+
+  for(let position in candidates) {
+    html += `<div class='card'><h3>${position}</h3>`;
+    candidates[position].forEach(c => {
+      html += `
+        <label>
+          <input type="radio" name="${position}" value="${c}"> ${c}
+        </label><br/>
+      `;
+    });
+    html += `</div>`;
+  }
+
+  html += `<button onclick='submitVote()'>Submit Vote</button></div>`;
+  document.getElementById("app").innerHTML = html;
+}
+
+function submitVote() {
+  const user = localStorage.getItem("currentUser");
+
+  for(let position in candidates) {
+    let selected = document.querySelector(`input[name="${position}"]:checked`);
+    if(!selected) return alert("Vote all positions");
+
+    votes[position] = votes[position] || {};
+    votes[position][selected.value] = (votes[position][selected.value] || 0) + 1;
+  }
+
+  votedUsers.push(user);
+  localStorage.setItem("votes", JSON.stringify(votes));
+  localStorage.setItem("votedUsers", JSON.stringify(votedUsers));
+
+  render("done");
+}
+
+// ====== CONFIRMATION ======
+function donePage() {
+  document.getElementById("app").innerHTML = `
+    <div class="container">
+      <h2>Your vote has been recorded ✅</h2>
+      <button onclick="location.reload()">Logout</button>
+    </div>
+  `;
+}
+
+// ====== ADMIN LOGIN ======
+function adminLogin() {
+  document.getElementById("app").innerHTML = `
+    <div class="container">
+      <h2>Admin Login</h2>
+      <input id="pass" type="password" placeholder="Enter password" />
+      <button onclick="adminAuth()">Login</button>
+    </div>
+  `;
+}
+
+function adminAuth() {
+  const pass = document.getElementById("pass").value;
+  if(pass === "admin123") render("dashboard");
+  else alert("Wrong password");
+}
+
+// ====== DASHBOARD ======
+function dashboard() {
+  let totalVotes = votedUsers.length;
+
+  let html = `<div class='container'>
+    <h2>Admin Dashboard</h2>
+    <p>Total Voters: ${votedUsers.length}</p>
+    <p>Votes Cast: ${totalVotes}</p>
+    <h3>Results</h3>
+  `;
+
+  for(let position in votes) {
+    html += `<div class='card'><h4>${position}</h4>`;
+    for(let c in votes[position]) {
+      html += `<p>${c}: ${votes[position][c]}</p>`;
+    }
+    html += `</div>`;
+  }
+
+  html += `
+    <button onclick="reset()">Reset Election</button>
+    <button onclick="location.reload()">Logout</button>
+  </div>`;
+
+  document.getElementById("app").innerHTML = html;
+}
+
+function reset() {
+  localStorage.clear();
+  location.reload();
+}
+
+// ====== START ======
+render("login");
+</script>
+
+</body>
+</html>
